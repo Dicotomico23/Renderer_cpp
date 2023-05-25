@@ -14,8 +14,8 @@ using namespace std;
 #define HEIGHT 600
 #define MAX_OUTBUF 128
 #define MAX_ARR 10000
-#define ARCHIVO "C:\\Modelos.obj\\airplane.obj"
-#define ARCHIVO "C:\\Modelos.obj\\cubo.obj"
+#define ARCHIVO1 "C:\\Modelos.obj\\airplane.obj"
+#define ARCHIVO2 "C:\\Modelos.obj\\cubo.obj"
 
 class Vertices{
 public:
@@ -43,6 +43,7 @@ public:
     vector<Vertices> vert;
     vector<Caras> c;
     int indicesVert[MAX_ARR][MAX_ARR];
+    int numVertices=0, numCaras=0, contVert=0;
 };
 
 ///PROTOTIPO DE FUNCIONES///
@@ -50,7 +51,7 @@ void IniciarPuntosControl();
 Vertices Bezier(float t, Vertices p0, Vertices p1, Vertices p2, Vertices p3);
 void display(void);
 void init(void);
-bool LoadObjFile(const char* filepath);
+bool LoadObjFile(const char* filepath, int index);
 Vertices MultMat4x4Vector4x1(float mat[4][4],Vertices v);
 void MultMat4x4Matriz4x4(float mat1[4][4], float mat2[4][4], float res[4][4]);
 void ImprimirMatriz(float Matriz[4][4]);
@@ -58,10 +59,9 @@ void graficaCurvaBezier(void);
 //////////////////////////
 
 ///VARIABLES GLOBALES///
-Objeto3D obj = Objeto3D();
+Objeto3D obj[2];
 int NumModelos=2;
 int cont_tiempo = 0;
-int numVertices=0, numCaras=0, contVert=0;
 Vertices p0, p1, p2, p3;
 ///////////////////////
 
@@ -119,12 +119,13 @@ void display(void)
 
     glBegin(GL_QUADS);
     glColor3f(0.2, 0.2, 0);
-    for(int contModelo1=0;contModelo1<numCaras;contModelo1++)
+
+    for(int contModelo1=0;contModelo1<obj[0].numCaras;contModelo1++)
     {
-        Vertices v1_m1 = obj.vert[obj.indicesVert[contModelo1][0]-1];
-        Vertices v2_m1 = obj.vert[obj.indicesVert[contModelo1][1]-1];
-        Vertices v3_m1 = obj.vert[obj.indicesVert[contModelo1][2]-1];
-        Vertices v4_m1 = obj.vert[obj.indicesVert[contModelo1][3]-1];
+        Vertices v1_m1 = obj[0].vert[obj[0].indicesVert[contModelo1][0]-1];
+        Vertices v2_m1 = obj[0].vert[obj[0].indicesVert[contModelo1][1]-1];
+        Vertices v3_m1 = obj[0].vert[obj[0].indicesVert[contModelo1][2]-1];
+        Vertices v4_m1 = obj[0].vert[obj[0].indicesVert[contModelo1][3]-1];
 
         MultMat4x4Matriz4x4(MatrizTraslacion,MatrizRotacion,MatrizRes1);
         MultMat4x4Matriz4x4(MatrizRes1,MatrizOrigen,MatrizModelo);
@@ -133,6 +134,19 @@ void display(void)
         v2_m1 = MultMat4x4Vector4x1(MatrizModelo,v2_m1);
         v3_m1 = MultMat4x4Vector4x1(MatrizModelo,v3_m1);
         v4_m1 = MultMat4x4Vector4x1(MatrizModelo,v4_m1);
+
+        glVertex3f(v1_m1.x, v1_m1.y, v1_m1.z);
+        glVertex3f(v2_m1.x, v2_m1.y, v2_m1.z);
+        glVertex3f(v3_m1.x, v3_m1.y, v3_m1.z);
+        glVertex3f(v4_m1.x, v4_m1.y, v4_m1.z);
+    }
+
+    for(int contModelo1=0;contModelo1<obj[1].numCaras;contModelo1++)
+    {
+        Vertices v1_m1 = obj[1].vert[obj[1].indicesVert[contModelo1][0]-1];
+        Vertices v2_m1 = obj[1].vert[obj[1].indicesVert[contModelo1][1]-1];
+        Vertices v3_m1 = obj[1].vert[obj[1].indicesVert[contModelo1][2]-1];
+        Vertices v4_m1 = obj[1].vert[obj[1].indicesVert[contModelo1][3]-1];
 
         glVertex3f(v1_m1.x, v1_m1.y, v1_m1.z);
         glVertex3f(v2_m1.x, v2_m1.y, v2_m1.z);
@@ -170,7 +184,7 @@ void init(void)
 	gluLookAt(9.0, 0.0, 0.0, 0.0,0.0,0.0, 0.0, 1.0, 0.0  );
 }
 
-bool LoadObjFile(const char* filepath)
+bool LoadObjFile(const char* filepath, int index)
 {
     Caras cara = Caras();
     FILE * file = fopen(filepath, "r");
@@ -187,8 +201,8 @@ bool LoadObjFile(const char* filepath)
         {
             Vertices vert = Vertices();
             fscanf(file,"%f %f %f",&vert.x,&vert.y,&vert.z);
-            obj.vert.push_back(vert);
-            numVertices++;
+            obj[index].vert.push_back(vert);
+            obj[index].numVertices++;
         }
         if(strcmp(outbuf,"f")==0)
         {
@@ -196,13 +210,13 @@ bool LoadObjFile(const char* filepath)
             int cont = 0;
             do{
                 fscanf(file,"%d/%d/%d", &cara.c1, &cara.c2, &cara.c3);
-                obj.c.push_back(cara);
-                obj.indicesVert[numCaras][cont] = cara.c1;
+                obj[index].c.push_back(cara);
+                obj[index].indicesVert[obj[index].numCaras][cont] = cara.c1;
                 cont++;
                 aux = getc(file);
-                contVert++;
+                obj[index].contVert++;
             }while(aux==' ');
-            numCaras++;
+            obj[index].numCaras++;
         }
     }
     fclose(file);
@@ -211,7 +225,8 @@ bool LoadObjFile(const char* filepath)
 int main(int argc, char** argv)
 {
     printf("INICIA\n");
-    LoadObjFile(ARCHIVO);
+    LoadObjFile(ARCHIVO1, 0);
+    LoadObjFile(ARCHIVO2, 1);
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowSize(WIDTH, HEIGHT);
